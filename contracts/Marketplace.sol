@@ -26,13 +26,16 @@ contract Marketplace is Ownable{
     IERC721 itemsToken;
 
     mapping (uint => Item) public allItems;
-    uint itemsCount = 0;
+    uint itemsCount = 0;  
 
     constructor(IERC20 _token, IERC721 _itemsToken){
         token = _token;
         itemsToken = _itemsToken;
     }
-
+    /**
+        @notice The user must have previously approved the marketplace to use his ERC721 token
+        @dev User creates item in the marketplace to sell it
+    */
     function sellItem(uint id, uint price) public {
         // itemsToken.approve(address(this),id);
         Item memory newOne = Item({price: price, id: id, isAvailable: true});
@@ -42,6 +45,10 @@ contract Marketplace is Ownable{
         // new event
     }
 
+    /**
+        @notice The user must have previously approved the marketplace to use his ERC20 token
+        @dev User buys an item from the marketplace
+    */
     function buyItem(uint id) public{
         Item storage item = allItems[id];
 
