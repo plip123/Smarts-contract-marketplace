@@ -33,10 +33,6 @@ contract Marketplace is Ownable{
         itemsToken = _itemsToken;
     }
 
-    function open() public pure returns (string memory){
-        return "Marketplace is open";
-    }
-
     function sellItem(uint id, uint price) public {
         // itemsToken.approve(address(this),id);
         Item memory newOne = Item({price: price, id: id, isAvailable: true});
