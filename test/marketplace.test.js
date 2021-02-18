@@ -29,7 +29,7 @@ contract("Marketplace", async ([admin, alice, bob, random]) => {
   })
 
   it("Should post an item", async () => {
-    await token721.approve(market.address, 10,{from: alice}) //no
+    await token721.approve(market.address, 10,{from: alice});
     await market.sellItem(10, web3.utils.toWei(String(20)),{from: alice});
     let item = await market.allItems(10);
     assert(item.isAvailable);
@@ -43,7 +43,7 @@ contract("Marketplace", async ([admin, alice, bob, random]) => {
 
   it("Should buy an item", async () => {
     await token20.mint(bob, web3.utils.toWei(String(20)), {from: admin});
-    await token20.approve(market.address,web3.utils.toWei(String(20)), {from: bob}); //no
+    await token20.approve(market.address,web3.utils.toWei(String(20)), {from: bob});
     await market.buyItem(10, {from: bob});
     assert.equal(await token721.ownerOf(10), bob);
   })
