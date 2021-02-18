@@ -2,6 +2,7 @@
 pragma solidity ^0.7.0;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+// import '@openzeppelin/contracts/presets/ERC721PresetMinterPauserAutoId.sol';
 
 contract MyTestToken721 is ERC721{
 
@@ -9,13 +10,8 @@ contract MyTestToken721 is ERC721{
 
     }
 
-    function createItem(address to, uint index) public {
-        _safeMint(to, index);
-    }
-
-    function transferOwnership(address from, address to, uint index) public {
-        require(_exists(index));
-        _safeTransfer(from, to, index, "");
+    function createItem(address to, uint id) public {
+        _safeMint(to, id);
     }
 
 }
