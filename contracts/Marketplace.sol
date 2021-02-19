@@ -55,12 +55,13 @@ contract Marketplace is Ownable{
         @notice The user must have previously approved the marketplace to use his ERC20 token
         @dev User buys an item from the marketplace
     */
-    function buyItem(uint id) public{
+    function buyItem(uint id) public {
         require(itemsToken.ownerOf(id) != msg.sender, "This is your own item");
 
         Item storage item = allItems[id];
 
         require(item.available, "Item already sold");
+        item.available = false;
 
         // get current buyer/seller balances
         uint buyerBalance = token.balanceOf(msg.sender);
@@ -78,7 +79,6 @@ contract Marketplace is Ownable{
         emit BuyItem(msg.sender, item.seller, id, item.price);
 
         item.price = 0;
-        item.available = false;
         // new event
     }
 
