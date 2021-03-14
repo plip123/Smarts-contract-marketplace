@@ -6,80 +6,59 @@ import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/token/ERC20/SafeERC20.sol';
 import '@openzeppelin/contracts/math/SafeMath.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
+import "hardhat/console.sol";
 
-contract Marketplace is Ownable{
-
+contract Marketplace is Ownable{    
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
-
-    //EVENTS
-    event SellItem(address seller, uint price, uint id);
-    event BuyItem(address buyer, address seller, uint id, uint price);
+    
+    IERC20 token;
+    IERC721 itemToken;
 
     struct Item {
-        address seller;
+        uint256 id;
+        address vendor;
         uint price;
-        uint id;
         bool available;
     }
 
-    IERC20 token;
-    IERC721 itemsToken;
+    mapping(uint256 => Item) public items;
+    //mapping(address => Item[]) public getItemsByVendor;
+    event SellItem (address vendor, uint256 id, uint price);
+    event BuyItem (address vendor, address seller, uint256 id, uint price);
 
-    mapping (uint => Item) public allItems;
-    uint itemsCount = 0;  
-
-    constructor(IERC20 _token, IERC721 _itemsToken){
+    constructor (IERC20 _token, IERC721 _itemToken) {
         token = _token;
-        itemsToken = _itemsToken;
+        itemToken = _itemToken;
     }
 
-    /**
-        @notice The user must have previously approved the marketplace to use his ERC721 token
-        @dev User creates item in the marketplace to sell it
-    */
-    function sellItem(uint id, uint price) public {
-        // user can not buy his own item
-        require(itemsToken.ownerOf(id) == msg.sender, "This is not your item");
+    function sellItems (uint256 tokenId, uint price) public {
+        require(itemToken.ownerOf(tokenId) == msg.sender, "You are not the owner of this item.");
+        require(price > 0, "Price must be greater than 0.");
+        require(itemToken.getApproved(tokenId) == address(this), "This item has not yet been approved.");
 
-        // the marketplace should have been approved to sell the item
-        require(itemsToken.getApproved(id) == address(this), "Not allowed to sell");
-
-        Item memory newOne = Item({seller: msg.sender, price: price, id: id, available: true});
-        allItems[id] = newOne;
-
-        emit SellItem(msg.sender, price, id);
+        items[tokenId] = Item(tokenId, msg.sender, price, true);
+        emit SellItem(msg.sender, tokenId, price);
     }
 
-    /**
-        @notice The user must have previously approved the marketplace to use his ERC20 token
-        @dev User buys an item from the marketplace
-    */
-    function buyItem(uint id) public {
-        require(itemsToken.ownerOf(id) != msg.sender, "This is your own item");
 
-        Item storage item = allItems[id];
+    function buyItem (uint256 tokenId) public payable {
+        require(itemToken.getApproved(tokenId) == address(this), "This item has not yet been approved.");
+        require(itemToken.ownerOf(tokenId) != msg.sender, "You are the owner of this item.");
+        Item storage item = items[tokenId];
 
-        require(item.available, "Item already sold");
+        require(item.available, "This item was sold.");
         item.available = false;
+        uint ownerBalance = token.balanceOf(msg.sender);
+        uint vendorBalance = token.balanceOf(item.vendor);
+        token.safeTransferFrom(msg.sender, item.vendor, item.price);
 
-        // get current buyer/seller balances
-        uint buyerBalance = token.balanceOf(msg.sender);
-        uint sellerBalance = token.balanceOf(itemsToken.ownerOf(id));
-        
-        // execute ERC20 transfer
-        token.safeTransferFrom(msg.sender, itemsToken.ownerOf(id), item.price);
+        require(token.balanceOf(msg.sender) <= ownerBalance.sub(item.price) && token.balanceOf(item.vendor) >= vendorBalance.add(item.price), "The transfer has not been processed");
 
-        // validate transfer success
-        require(token.balanceOf(msg.sender) <= buyerBalance.sub(item.price) && token.balanceOf(itemsToken.ownerOf(id)) >= sellerBalance.add(item.price), "Transfer did not succeed");
-        
-        // execute ERC721 transfer
-        itemsToken.safeTransferFrom(itemsToken.ownerOf(id), msg.sender, id);
+        itemToken.safeTransferFrom(item.vendor, msg.sender, tokenId);
 
-        emit BuyItem(msg.sender, item.seller, id, item.price);
+        require(itemToken.ownerOf(tokenId) == msg.sender, "Item transfer was not completed.");
 
-        item.price = 0;
-        // new event
+        emit BuyItem(item.vendor, msg.sender, tokenId, item.price);
     }
-
 }
